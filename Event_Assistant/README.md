@@ -1,6 +1,6 @@
 # Event Assistant – Full Project Specification (Cursor Build)
 
-Event Assistant is an AI copilot for conferences and trade shows that helps attendees, exhibitors, and organizers get more value from events through conversational workflows instead of menus and search.
+Event Assistant is an AI copilot for conferences and trade shows that helps attendees, exhibitors, and organizers get more value from events through conversational workflows.
 
 ## Core workflows (v1)
 
@@ -295,7 +295,7 @@ In `packages/agent`:
 - `policy.ts` – permission checks, PII redaction, no‑claim enforcement.
 - `agent.ts` – main loop: route intent → retrieve → call tools → generate answer with citations.
 
-### 7.5 `.cursorrules` (high‑level)
+### 7.5 `.cursorrules`
 
 - Enforce feature‑based structure (`/features/{name}`) and typed APIs.
 - Require tests for agent tools and business logic.
@@ -305,8 +305,6 @@ In `packages/agent`:
 ---
 
 ## 8. Deliverables
-
-**For your manager:**
 
 - `PRD.md` (this spec) in `/docs/`.
 - `ARCHITECTURE.md` – diagrams and flow of agent + tools + retrieval.
