@@ -1,0 +1,61 @@
+# Dependencies
+node_modules
+npm-debug.log
+.pnp
+.pnp.js
+
+# Testing
+coverage
+.nyc_output
+
+# Next.js
+.next
+out
+build
+
+# Misc
+.DS_Store
+*.pem
+*.log
+
+# Local env files
+.env*.local
+.env
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+docs
+README*.md
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github
+
+# IDE
+.vscode
+.idea
+
+# Test files
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+jest.config.js
+
+# Supabase (edge functions are deployed separately)
+supabase
