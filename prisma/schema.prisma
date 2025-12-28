@@ -1,0 +1,262 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  role          String   @default("analyst")
+  companyId     String   @map("company_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  company       Company  @relation(fields: [companyId], references: [id])
+  deals         Deal[]
+  documents     Document[]
+  auditLogs     AuditLog[]
+  networkMembers NetworkMember[]
+
+  @@map("users")
+}
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  tenantId  String   @unique @map("tenant_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  users     User[]
+  deals     Deal[]
+  documents Document[]
+
+  @@map("companies")
+}
+
+model Deal {
+  id          String   @id @default(uuid())
+  name        String
+  stage       String
+  value       Decimal? @db.Decimal(15, 2)
+  currency    String   @default("USD")
+  sector      String?
+  healthScore Float?   @map("health_score")
+  companyId   String   @map("company_id")
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  company     Company  @relation(fields: [companyId], references: [id])
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  documents   Document[]
+  activities  DealActivity[]
+
+  @@index([companyId])
+  @@index([stage])
+  @@map("deals")
+}
+
+model DealActivity {
+  id          String   @id @default(uuid())
+  dealId      String   @map("deal_id")
+  type        String
+  description String?
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  deal        Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@index([dealId])
+  @@index([createdAt])
+  @@map("deal_activities")
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  name        String
+  fileName    String   @map("file_name")
+  fileSize    BigInt   @map("file_size")
+  mimeType    String   @map("mime_type")
+  fileHash    String   @map("file_hash")
+  status      String   @default("uploaded")
+  dealId      String?  @map("deal_id")
+  companyId   String   @map("company_id")
+  uploadedById String  @map("uploaded_by_id")
+  storagePath String   @map("storage_path")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  deal        Deal?    @relation(fields: [dealId], references: [id])
+  company     Company  @relation(fields: [companyId], references: [id])
+  uploadedBy  User     @relation(fields: [uploadedById], references: [id])
+  chunks      DocumentChunk[]
+
+  @@index([companyId])
+  @@index([dealId])
+  @@index([fileHash])
+  @@map("documents")
+}
+
+model DocumentChunk {
+  id          String   @id @default(uuid())
+  documentId  String   @map("document_id")
+  content     String   @db.Text
+  pageNumber  Int?     @map("page_number")
+  chunkIndex  Int      @map("chunk_index")
+  embedding   Unsupported("vector(1536)")?
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([chunkIndex])
+  @@map("document_chunks")
+}
+
+model NetworkMember {
+  id          String   @id @default(uuid())
+  name        String
+  email       String?
+  company     String?
+  role        String?
+  location    String?
+  sectors     String[]
+  tags        String[]
+  trustScore  Float?   @map("trust_score")
+  companyId   String   @map("company_id")
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  company     Company  @relation(fields: [companyId], references: [id])
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  outcomes    NetworkOutcome[]
+  edges       NetworkEdge[] @relation("fromMember")
+  edgesTo     NetworkEdge[] @relation("toMember")
+
+  @@index([companyId])
+  @@map("network_members")
+}
+
+model NetworkEdge {
+  id          String   @id @default(uuid())
+  fromMemberId String  @map("from_member_id")
+  toMemberId   String  @map("to_member_id")
+  relationship String
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  fromMember  NetworkMember @relation("fromMember", fields: [fromMemberId], references: [id])
+  toMember    NetworkMember @relation("toMember", fields: [toMemberId], references: [id])
+
+  @@index([fromMemberId])
+  @@index([toMemberId])
+  @@map("network_edges")
+}
+
+model NetworkOutcome {
+  id          String   @id @default(uuid())
+  memberId    String   @map("member_id")
+  type        String
+  status      String   @default("pending")
+  description String?
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  member      NetworkMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([status])
+  @@map("network_outcomes")
+}
+
+model CompanyIntelligence {
+  id              String   @id @default(uuid())
+  companyName     String   @map("company_name")
+  domain          String?  @unique
+  data            Json
+  freshnessScore  Float    @default(0) @map("freshness_score")
+  sourceQuality   Float    @default(0) @map("source_quality")
+  synergyPotential Json?   @map("synergy_potential")
+  embedding       Unsupported("vector(1536)")?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([domain])
+  @@index([freshnessScore])
+  @@map("company_intelligence")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id")
+  action      String
+  resource    String?
+  resourceId  String?  @map("resource_id")
+  metadata    Json?
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  previousHash String? @map("previous_hash")
+  hash        String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([hash])
+  @@map("audit_logs")
+}
+
+model AiAudit {
+  id              String   @id @default(uuid())
+  operationType   String   @map("operation_type")
+  model           String?
+  inputTokens     Int?     @map("input_tokens")
+  outputTokens    Int?     @map("output_tokens")
+  costUsd         Decimal? @db.Decimal(10, 6) @map("cost_usd")
+  latencyMs       Int?     @map("latency_ms")
+  confidenceScore Float?   @map("confidence_score")
+  groundingScore  Float?   @map("grounding_score")
+  biasFlags       String[] @map("bias_flags")
+  traceId         String?  @map("trace_id")
+  spanId          String?  @map("span_id")
+  metadata        Json?
+  humanReview     Boolean  @default(false) @map("human_review")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([operationType])
+  @@index([createdAt])
+  @@index([traceId])
+  @@map("ai_audits")
+}
+
+model TimeTracking {
+  id          String   @id @default(uuid())
+  operationType String @map("operation_type")
+  timeSaved   Int      @map("time_saved")
+  userId      String?  @map("user_id")
+  dealId      String?  @map("deal_id")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([operationType])
+  @@index([createdAt])
+  @@map("time_tracking")
+}
+
